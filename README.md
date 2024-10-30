@@ -9,10 +9,12 @@ Folio is a tool to manage your prompts and organise them under projects. It also
 
 ## Installation
 
-Install the Folio CLI tool via pip:
+Download wheel from [here](https://github.com/neshkatrapati/folio/releases/tag/v1.0.0)
+
+Install Folio via pip:
 
 ```bash
-pip install folio-cli
+pip install folio-x.y.z.tar.gz
 ```
 
 Then, set the `FOLIO_DB_PATH` environment variable:
