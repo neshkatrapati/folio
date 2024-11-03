@@ -1,81 +1,81 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from uuid import UUID
-
+import os
 from pydantic import BaseModel
 from tinydb import TinyDB, Query
 import uuid
 from datetime import datetime
 
-
 DATETIME_FMT = "%m/%d/%Y %H:%M:%S"
 
 
-class Project(BaseModel):
-    id:str
-    name:str
-    created_at:str
-
 class Prompt(BaseModel):
-    id:str
-    project_id:str
-    name:str
-    text:str
-    version:int
-    created_at:str
+    id: str
+    name: str
+    version: int
+    text: Optional[str] = "None"
+    created_at: str
+
 
 class PromptAggregate(BaseModel):
-    project:Project
-    name:str
-    num_versions:int
-
+    name: str
+    num_versions: int
 
 
 class Folio:
-    def __init__(self, db_file_path: str):
-        self.db = TinyDB(db_file_path)
+    def __init__(self, folio_path: Optional[str] = "folio"):
+        self.folio_path = folio_path
+        self.db_file_path = os.path.join(folio_path, "folio.db")
+        self.prompts_path = os.path.join(folio_path, "prompts")
+
+        self.db = TinyDB(self.db_file_path)
         self.tables = self.db.tables
-        self.projects = self.db.table('projects')
         self.prompts = self.db.table('prompts')
 
+    @staticmethod
+    def init(folio_path: Optional[str] = "folio"):
+        prompts_path = os.path.join(folio_path, "prompts")
 
-    def create_project(self, project_name:str) -> str:
-        project_id = str(uuid.uuid4())
-        project = Project(id=project_id, name=project_name, created_at = datetime.now().strftime(DATETIME_FMT))
-        self.projects.insert(project.model_dump())
-        return project_id
+        if not os.path.exists(folio_path):
+            os.mkdir(folio_path)
+        if not os.path.exists(prompts_path):
+            os.mkdir(prompts_path)
 
-    def list_projects(self) -> List[Project]:
-        all_projects = [Project(**x) for x in self.projects.all()]
-        return all_projects
+        return Folio(folio_path)
 
-    def find_project_by_name(self, project_name:str) -> Optional[Project]:
-        proj_query = Query()
-        try:
-            project = self.projects.search(proj_query.name == project_name)
-            return Project(**project[0])
-        except Exception as e:
-            return None
+    #
+    # def list_projects(self) -> List[Project]:
+    #     all_projects = [Project(**x) for x in self.projects.all()]
+    #     return all_projects
+    #
+    # def find_project_by_name(self, project_name:str) -> Optional[Project]:
+    #     proj_query = Query()
+    #     try:
+    #         project = self.projects.search(proj_query.name == project_name)
+    #         return Project(**project[0])
+    #     except Exception as e:
+    #         return None
 
-    def get_latest_prompt(self, project, prompt_name) -> Optional[Prompt]:
+    def get_latest_prompt(self, prompt_name) -> Optional[Prompt]:
         prompt_query = Query()
         try:
-            prompts = self.prompts.search((prompt_query.name == prompt_name) & (prompt_query.project_id == project.id))
+            prompts = self.prompts.search((prompt_query.name == prompt_name))
             prompts = sorted(prompts, key=lambda p: p['version'], reverse=True)
             return Prompt(**prompts[0])
         except Exception as e:
             #print(e)
             return None
 
-    def list_prompts_by_project_name(self, project_name:str) -> Optional[List[PromptAggregate]]:
+    def list_prompts(self) -> Optional[List[PromptAggregate]]:
         prompt_query = Query()
         try:
-            project = self.find_project_by_name(project_name)
-            prompts = self.prompts.search(prompt_query.project_id == project.id)
+
+            prompts = self.prompts.all()
             prompt_dict = {}
             for prompt in prompts:
                 prompt = Prompt(**prompt)
                 if prompt.name not in prompt_dict:
-                    prompt_dict[prompt.name] = {"project": project, "name": prompt.name, "num_versions":0}
+                    prompt_dict[prompt.name] = {"name": prompt.name, "num_versions": 0}
                 prompt_dict[prompt.name]["num_versions"] += 1
 
             return [PromptAggregate(**x) for x in prompt_dict.values()]
@@ -84,47 +84,101 @@ class Folio:
             # print(e)
             return None
 
-    def list_versions_by_prompt(self, project_name:str, prompt_name:str) -> Optional[List[Prompt]]:
+    def list_versions_by_prompt(self, prompt_name: str) -> Optional[List[Prompt]]:
         prompt_query = Query()
         try:
-            project = self.find_project_by_name(project_name)
-            prompts = self.prompts.search((prompt_query.project_id == project.id) and (prompt_query.name == prompt_name))
+            prompts = self.prompts.search((prompt_query.name == prompt_name))
             prompts = sorted(prompts, key=lambda p: p['version'], reverse=True)
+           # print(prompts)
             return [Prompt(**x) for x in prompts]
         except Exception as e:
-            # print(e)
+            print(e)
             return None
 
-    def get_prompt(self, project_name:str, prompt_name:str, version:Optional[int] = None) -> Optional[Prompt]:
+    def get_prompt(self, prompt_name: str, version: Optional[int] = None) -> Optional[Prompt]:
         prompt_query = Query()
         try:
-            project = self.find_project_by_name(project_name)
-
             if version is None:
-                prompt = self.get_latest_prompt(project, prompt_name)
+                prompt = self.get_latest_prompt(prompt_name)
             else:
                 prompts = self.prompts.search(
-                    (prompt_query.project_id == project.id) and
                     (prompt_query.name == prompt_name) and
                     (prompt_query.version == version))
 
                 prompt = Prompt(**prompts[0])
+
+            prompt_file = os.path.join(self.prompts_path, prompt.name, f"{prompt.version}")
+            if not os.path.exists(prompt_file):
+                raise Exception(f"{prompt_file} not found under {self.prompts_path}")
+            prompt_text = open(prompt_file, "r").read()
+            prompt.text = prompt_text
             return prompt
         except Exception as e:
             return None
 
-
-    def add_prompt(self, project_name, prompt_name, prompt_text) -> Optional[Prompt]:
+    def add_prompt(self, prompt_name, prompt_text) -> Optional[Prompt]:
         prompt_id = str(uuid.uuid4())
-        project = self.find_project_by_name(project_name)
-        if project is not None:
-            project_id = project.id
-            prompt = self.get_latest_prompt(project, prompt_name)
-            if prompt is None:
-                prompt = Prompt(id=prompt_id, project_id=project_id, name=prompt_name, text=prompt_text, version=1, created_at = datetime.now().strftime(DATETIME_FMT))
-            else:
-                prompt = Prompt(id=prompt_id, project_id=project_id, name=prompt_name, text=prompt_text, version=prompt.version + 1, created_at = datetime.now().strftime(DATETIME_FMT))
+        prompt = self.get_latest_prompt(prompt_name)
+        prompt_path = os.path.join(self.prompts_path, prompt_name)
+        if prompt is None:
+            prompt = Prompt(id=prompt_id, name=prompt_name, version=1, created_at=datetime.now().strftime(DATETIME_FMT))
+            if not os.path.exists(prompt_path):
+                os.mkdir(prompt_path)
+        else:
+            prompt = Prompt(id=prompt_id, name=prompt_name, version=prompt.version + 1,
+                            created_at=datetime.now().strftime(DATETIME_FMT))
 
-            self.prompts.insert(prompt.model_dump())
-            return prompt
-        return None
+        self.prompts.insert(prompt.model_dump())
+        prompt.text = prompt_text
+
+        # Add version name and meta info into comments in the file
+        with open(os.path.join(prompt_path, f"{prompt.version}"), "w") as f:
+            f.write(prompt.text)
+
+        with open(os.path.join(prompt_path, "latest"), "w") as f:
+            f.write(prompt.text)
+
+        return prompt
+
+    def delete_version(self, prompt_name, version: Union[str, int]):
+        prompt = None
+        if version == "latest":
+            prompt = self.get_latest_prompt(prompt_name)
+        elif isinstance(version, int):
+            prompt = self.get_prompt(prompt_name, version)
+        else:
+            raise Exception(f"{version} not found / bad version")
+
+        if prompt:
+            prompt_query = Query()
+            latest_prompt = self.get_latest_prompt(prompt_name)
+
+            self.prompts.remove((prompt_query.name == prompt.name) and (prompt_query.version == prompt.version))
+
+            prompt_path = os.path.join(self.prompts_path, prompt.name, f"{prompt.version}")
+            if os.path.exists(prompt_path):
+                os.remove(prompt_path)
+
+            if latest_prompt:
+                # Remove the prompt if this is the latest version.
+                latest_version = latest_prompt.version
+                if latest_version == 1 and prompt.version == 1:
+                    prompt_path = os.path.join(self.prompts_path, prompt.name, "latest")
+                    if os.path.exists(prompt_path):
+                        os.remove(prompt_path)
+
+                    os.rmdir(os.path.join(self.prompts_path, prompt.name))
+
+            if version == "latest":
+                # If this is NOT the latest version, shift "latest"
+                prev_prompt = self.get_prompt(prompt_name, prompt.version - 1)
+                if prev_prompt:
+                    prompt_path = os.path.join(self.prompts_path, prompt.name, "latest")
+                    with open(prompt_path, "w") as f:
+                        f.write(prev_prompt.text)
+
+        else:
+            raise Exception(f"{version} not found / bad version")
+
+
+
