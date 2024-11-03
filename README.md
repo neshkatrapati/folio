@@ -1,6 +1,4 @@
-Here's the revised `README.md` with the CLI information retained, but without the workflow section:
 
----
 
 # Folio
 
