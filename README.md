@@ -1,167 +1,213 @@
-# Folio
-
-Folio is a tool to manage your prompts and organise them under projects. It also has bult-in version control for prompts. It is lightweight, non-intrusive and llm-agnostic.
-
-## Prerequisites
-
-1. **Python** 3.7 or higher
-2. **Folio Database Path**: Ensure the `FOLIO_DB_PATH` environment variable is set to point to the Folio database.
-
-## Installation
-
-Download wheel from [here](https://github.com/neshkatrapati/folio/releases/tag/v1.0.0)
-
-Install Folio via pip:
-
-```bash
-pip install folio-x.y.z.tar.gz
-```
-
-Then, set the `FOLIO_DB_PATH` environment variable:
-
-```bash
-export FOLIO_DB_PATH=/path/to/your/database
-```
-
-## Commands
-
-### 1. `list_projects`
-
-Lists all projects in the database.
-
-```bash
-folio list_projects
-```
-
-### 2. `list_prompts`
-
-Lists all prompts under a specific project.
-
-```bash
-folio list_prompts PROJECT_NAME
-```
-
-### 3. `list_versions`
-
-Lists all versions of a specific prompt under a project.
-
-```bash
-folio list_versions PROJECT_NAME PROMPT_NAME
-```
-
-### 4. `show_prompt`
-
-Displays the content of a specific prompt version.
-
-```bash
-folio show_prompt PROJECT_NAME PROMPT_NAME --version VERSION_NUMBER
-```
-
-If the version is not specified, the latest version will be shown.
-
-### 5. `create_project`
-
-Creates a new project with the specified name.
-
-```bash
-folio create_project PROJECT_NAME
-```
-
-### 6. `add_prompt`
-
-Adds a new prompt under a specified project. Input can be provided as a file or through stdin.
-
-```bash
-folio add_prompt PROJECT_NAME PROMPT_NAME --file /path/to/prompt.txt
-```
-
-Alternatively, provide prompt text through stdin:
-
-```bash
-echo "Prompt content" | folio add_prompt PROJECT_NAME PROMPT_NAME
-```
-
-Here's the revised README section for programmatic usage with naming rules:
+Here's the revised `README.md` with the CLI information retained, but without the workflow section:
 
 ---
 
-## Programmatic Usage
+# Folio
 
-The `Folio` class provides programmatic access to projects and prompts in the database. Below are examples of how to create projects, add prompts, and retrieve data directly in code.
+Folio is a CLI and Python-based library for managing and storing prompt templates with versioning capabilities. It supports Jinja2-based templating for dynamic prompt rendering, leveraging TinyDB for lightweight data storage and easy-to-use methods for listing, retrieving, and managing prompt versions.
 
-### Setup
+## Installation
 
-Ensure the database path is set correctly:
+To install `folio`, download the latest release from the GitHub repository:
 
-```python
-from folio import Folio  # Import the Folio class from the installed package
+[https://github.com/neshkatrapati/folio](https://github.com/neshkatrapati/folio)
 
-# Initialize Folio with the database path
-folio = Folio(db_file_path="path/to/your/folio_db.json")
+After downloading, install the package with:
+
+```bash
+pip install path/to/folio-release.whl
 ```
 
-### Examples
+## CLI Commands
 
-#### 1. Create a Project
+1. **Initialize a Folio Project**
 
-To create a new project:
+   This command initializes the `folio` project in the current directory, creating the necessary folders and database.
+
+   ```bash
+   folio init
+   ```
+
+2. **Add a New Prompt**
+
+   To add a prompt from a file:
+
+   ```bash
+   folio add <prompt_name> --file path/to/prompt.txt
+   ```
+
+   Or by piping from standard input:
+
+   ```bash
+   echo "Prompt text goes here" | folio add <prompt_name>
+   ```
+
+   You may add variable using the Jinja2 template format like this. 
+
+   ```bash
+   echo "Write a haiku about {{ topic }} " | folio add <prompt_name>
+   ```
+
+
+3. **List All Prompts**
+
+   To list all prompts with their respective versions:
+
+   ```bash
+   folio list-prompts
+   ```
+
+4. **List All Versions of a Prompt**
+
+   This lists all versions for a specific prompt:
+
+   ```bash
+   folio list-versions <prompt_name>
+   ```
+
+5. **Show a Prompt Version**
+
+   Retrieve and display a specific version of a prompt:
+
+   ```bash
+   folio show <prompt_name> --version <version_number>
+   ```
+
+   If the version is omitted, it retrieves the latest version. You can also render a prompt with specific variables:
+
+   ```bash
+   folio show <prompt_name> --version <version_number> --render '{"key": "value"}'
+   ```
+
+6. **Delete a Prompt Version**
+
+   Deletes a specified version of a prompt:
+
+   ```bash
+   folio delete-version <prompt_name> --version <version_number>
+   ```
+
+   To delete the latest version:
+
+   ```bash
+   folio delete-version <prompt_name> --latest
+   ```
+
+## Using Folio in Python
+
+Folio also provides a Python API for managing prompts programmatically. Below is an example demonstrating how to initialize Folio, add prompts, and use templating with Jinja2 for prompt rendering.
+
+### Example Workflow
+
+1. **Initialize Folio**
+
+   ```python
+   from folio import Folio
+
+   # Initialize Folio and create necessary directories and files
+   folio = Folio.init()
+   ```
+
+2. **Add a New Prompt with Templating**
+
+   Folio uses Jinja2 templating syntax, allowing you to include variables in prompt templates. This example adds a prompt with a placeholder for the recipient's name.
+
+   ```python
+   from datetime import datetime
+
+   prompt_text = "Write a haiku about {{ topic }}"
+   folio.add_prompt("song", prompt_text)
+   ```
+
+3. **Retrieve and Render a Prompt**
+
+   You can retrieve the latest version of a prompt and render it with specific values using Jinja2 syntax.
+
+   ```python
+   # Get the latest version of the prompt and render with variables
+   rendered_prompt = folio.get_prompt(
+       "song",
+       render={"topic" : "Generative AI"}
+   )
+   print(rendered_prompt.text)  # Output: Hello, Alice! Today is 2024-11-03.
+   ```
+
+4. **Add a New Version of the Prompt**
+
+   Folio automatically increments the version when you update a prompt:
+
+   ```python
+   updated_prompt_text = "Compose a poem on {{ topic }} in {{ num_lines }} lines"
+   folio.add_prompt("song", updated_prompt_text)
+   ```
+
+5. **List All Versions of a Prompt**
+
+   Retrieve and display all versions of a specific prompt, along with their creation dates.
+
+   ```python
+   versions = folio.list_versions_by_prompt("song")
+   for version in versions:
+       print(f"Version {version.version} created on {version.created_at}")
+   ```
+
+6. **Delete a Specific Version of a Prompt**
+
+   Folio allows you to delete a specific version or the latest version of a prompt:
+
+   ```python
+   folio.delete_version("song", version=1)
+   ```
+
+### Prompt Inheritance
+
+Folio allows Jinja2 based prompt inheritance. For example
 
 ```python
-project_id = folio.create_project("my_new_project")
-print(f"Created project with ID: {project_id}")
+
+{# prompt: cot/latest #}
+
+{% block task %}
+{% endblock %}
+
+{% block problem_statement %}
+{% endblock %}
+
+{% block examples %}
+Here are some examples
+    {% for example in examples %}
+        ** Example {{ loop.index }} ** : {{ example }}
+    {% endfor %}
+{% endblock %}
+
+Let's think step by step
+
+{% block ensure_output_format %}
+{% endblock %}
 ```
 
-#### 2. List All Projects
-
-To list all existing projects:
+This can be then extended in other templates
 
 ```python
-projects = folio.list_projects()
-for project in projects:
-    print(f"ID: {project.id}, Name: {project.name}, Created At: {project.created_at}")
+{# prompt: ner/latest #}
+
+{% extends 'cot/latest' %}
+
+{% block task %}
+Your task is to perform Named Entity Detection.
+{% endblock %}
+
+{% block problem_statement %}
+Here is some text : {{ text }}
+Detect the following entities:
+- Name
+- Organisation
+- Currency
+- Email
+{% endblock %}
+
+{% block ensure_output_format %}
+Ensure the output is in JSON. Do not generate any markdown.
+{% endblock %}
+
 ```
-
-#### 3. Add a Prompt to a Project
-
-To add a prompt to an existing project:
-
-```python
-prompt = folio.add_prompt("my_new_project", "sample_prompt", "This is the text of the sample prompt.")
-print(f"Created prompt '{prompt.name}' under project 'my_new_project' with version {prompt.version}")
-```
-
-#### 4. List Prompts by Project Name
-
-To list all prompts under a specific project:
-
-```python
-prompts = folio.list_prompts_by_project_name("my_new_project")
-for prompt in prompts:
-    print(f"Prompt Name: {prompt.name}, Versions: {prompt.num_versions}")
-```
-
-#### 5. List Versions of a Prompt
-
-To retrieve all versions of a specific prompt under a project:
-
-```python
-versions = folio.list_versions_by_prompt("my_new_project", "sample_prompt")
-for version in versions:
-    print(f"Version: {version.version}, Created At: {version.created_at}")
-```
-
-#### 6. Retrieve a Specific Prompt
-
-To retrieve a specific prompt version or the latest version:
-
-```python
-# Retrieve the latest version
-prompt = folio.get_prompt("my_new_project", "sample_prompt")
-print(f"Latest Version Text: {prompt.text}")
-
-# Retrieve a specific version
-prompt = folio.get_prompt("my_new_project", "sample_prompt", version=1)
-print(f"Version 1 Text: {prompt.text}")
-```
-
-These examples showcase the flexibility of the `Folio` class to programmatically manage projects and prompts in the database while adhering to naming conventions.
