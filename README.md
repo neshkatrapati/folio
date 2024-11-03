@@ -6,6 +6,17 @@ Here's the revised `README.md` with the CLI information retained, but without th
 
 Folio is a CLI and Python-based library for managing and storing prompt templates with versioning capabilities. It supports Jinja2-based templating for dynamic prompt rendering, leveraging TinyDB for lightweight data storage and easy-to-use methods for listing, retrieving, and managing prompt versions.
 
+## Features
+* **Prompt Versioning**: Automatically manage and version prompts as you add or modify them. Folio increments version numbers for each updated prompt, keeping track of the entire prompt history.
+
+* **LLM Agnostic** : Folio does not directly interact with any LLM. It only manages your prompts for you. So, you can use it with any LLM. 
+
+* **Templating with Jinja2**: Folio uses Jinja2 templating syntax, enabling dynamic text generation. Easily include variables within prompts for customizable outputs. The biggest advantage is that you can create your own templates which can be composed to form new prompts leading to better organisation and reduced prompt redundancy. 
+
+* **CLI and Python API Support**: Manage prompts directly from the command line or use Folio’s Python API for programmatic access and automation.
+
+
+
 ## Installation
 
 To install `folio`, download the latest release from the GitHub repository:
