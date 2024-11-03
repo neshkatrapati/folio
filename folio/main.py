@@ -1,3 +1,4 @@
+import json
 import sys
 from typing import Optional, Union
 
@@ -61,15 +62,17 @@ def list_versions(prompt_name: str):
 
 
 @app.command()
-def show(prompt_name: str, version: Optional[int] = None):
+def show(prompt_name: str, version: Optional[int] = None, render: Optional[str] = None):
     folio_obj = get_folio_object()
-    prompt = folio_obj.get_prompt(prompt_name, version)
+    render = json.loads(render) if render else None
+    prompt = folio_obj.get_prompt(prompt_name, version, render = render)
     console = Console()
     if prompt is None:
         console.print(f"Cannot find prompt = {prompt_name} / version = {version}")
         return None
 
     console.print(prompt.text)
+
 
 
 @app.command("init")

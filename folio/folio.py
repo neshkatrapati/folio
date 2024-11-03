@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from tinydb import TinyDB, Query
 import uuid
 from datetime import datetime
+from .template_renderer import render_prompt
 
 DATETIME_FMT = "%m/%d/%Y %H:%M:%S"
 
@@ -43,18 +44,6 @@ class Folio:
 
         return Folio(folio_path)
 
-    #
-    # def list_projects(self) -> List[Project]:
-    #     all_projects = [Project(**x) for x in self.projects.all()]
-    #     return all_projects
-    #
-    # def find_project_by_name(self, project_name:str) -> Optional[Project]:
-    #     proj_query = Query()
-    #     try:
-    #         project = self.projects.search(proj_query.name == project_name)
-    #         return Project(**project[0])
-    #     except Exception as e:
-    #         return None
 
     def get_latest_prompt(self, prompt_name) -> Optional[Prompt]:
         prompt_query = Query()
@@ -95,7 +84,7 @@ class Folio:
             print(e)
             return None
 
-    def get_prompt(self, prompt_name: str, version: Optional[int] = None) -> Optional[Prompt]:
+    def get_prompt(self, prompt_name: str, version: Optional[int] = None, render: Optional[dict] = None) -> Optional[Prompt]:
         prompt_query = Query()
         try:
             if version is None:
@@ -110,8 +99,14 @@ class Folio:
             prompt_file = os.path.join(self.prompts_path, prompt.name, f"{prompt.version}")
             if not os.path.exists(prompt_file):
                 raise Exception(f"{prompt_file} not found under {self.prompts_path}")
-            prompt_text = open(prompt_file, "r").read()
-            prompt.text = prompt_text
+
+            if not render:
+                prompt_text = open(prompt_file, "r").read()
+                prompt.text = prompt_text
+            else:
+                prompt_template_path = os.path.join(prompt_name, str(prompt.version))
+                prompt.text = render_prompt(prompt_template_path, render)
+
             return prompt
         except Exception as e:
             return None
