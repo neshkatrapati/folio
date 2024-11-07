@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "folio"
+name = "folioprompts"
 version = "0.2.0"
 description = ""
 authors = ["Ganesh Katrapati <neshmailsu@gmail.com>"]
@@ -14,7 +14,7 @@ rich = "^13.9.3"
 jinja2 = "^3.1.4"
 
 [tool.poetry.scripts]
-folio = "folio.main:app"
+folio = "folioprompts.main:app"
 
 [build-system]
 requires = ["poetry-core"]
