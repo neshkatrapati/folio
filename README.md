@@ -17,14 +17,8 @@ Folio is a CLI and Python-based library for managing and storing prompt template
 
 ## Installation
 
-To install `folio`, download the latest release from the GitHub repository:
-
-[https://github.com/neshkatrapati/folio](https://github.com/neshkatrapati/folio)
-
-After downloading, install the package with:
-
 ```bash
-pip install path/to/folio-release.whl
+pip install folioprompts
 ```
 
 ## CLI Commands
@@ -138,7 +132,7 @@ Folio also provides a Python API for managing prompts programmatically. Below is
        "song",
        render={"topic" : "Generative AI"}
    )
-   print(rendered_prompt.text)  # Output: Hello, Alice! Today is 2024-11-03.
+   print(rendered_prompt.text) 
    ```
 
 4. **Add a New Version of the Prompt**
