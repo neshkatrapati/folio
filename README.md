@@ -105,7 +105,7 @@ Folio also provides a Python API for managing prompts programmatically. Below is
 1. **Initialize Folio**
 
    ```python
-   from folio import Folio
+   from folioprompts import Folio
 
    # Initialize Folio and create necessary directories and files
    folio = Folio.init()
